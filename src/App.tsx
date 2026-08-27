@@ -34,7 +34,7 @@ type Screen =
   | "admin"
   | "rebirth";
 
-const SECRET_CODE = "DRILLO09";
+const SECRET_CODE = "ARMA5";
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -108,6 +108,12 @@ export default function App() {
             go={setScreen}
             onPlay={() => setScreen("play")}
             onSecret={() => setScreen(save.admin ? "admin" : "code")}
+            onClearProgress={() => {
+              persist(defaultSave());
+              setNameInput("");
+              setResult(null);
+              setScreen("name");
+            }}
           />
         )}
         {screen === "code" && (
@@ -298,12 +304,14 @@ function Menu({
   go,
   onPlay,
   onSecret,
+  onClearProgress,
 }: {
   save: SaveData;
   planet: Planet;
   go: (s: Screen) => void;
   onPlay: () => void;
   onSecret: () => void;
+  onClearProgress: () => void;
 }) {
   const equippedShell = getShell(save.equippedShell);
   const cost = rebirthCost(save.rebirths);
@@ -379,13 +387,48 @@ function Menu({
         )}
         {save.admin && (
           <Btn tone="secondary" onClick={() => go("admin")}>
-            👑 Admin Panel
+            🧪 Tester Menu
           </Btn>
         )}
+        <ClearProgress onClear={onClearProgress} />
         <p className="pt-1 text-center text-sm text-muted-foreground">
           Drag to aim, release to launch. Steer with A / D or ← → — steering needs fuel.
           Stop completely and the run ends. Esc quits.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ClearProgress({ onClear }: { onClear: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (!confirming) {
+    return (
+      <Btn tone="secondary" onClick={() => setConfirming(true)}>
+        🗑 Clear Progress
+      </Btn>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-2xl border-2 border-destructive bg-destructive/10 p-3">
+      <p className="text-center text-sm font-bold text-foreground text-pretty">
+        Wipe everything? Coins, upgrades, shells, and rebirths will be gone for good.
+      </p>
+      <div className="flex gap-2">
+        <button
+          onClick={onClear}
+          className="chunky flex-1 rounded-2xl border-2 border-border bg-destructive px-4 py-3 text-lg font-extrabold text-destructive-foreground"
+        >
+          Yes, wipe it
+        </button>
+        <button
+          onClick={() => setConfirming(false)}
+          className="chunky flex-1 rounded-2xl border-2 border-border bg-secondary px-4 py-3 text-lg font-extrabold text-secondary-foreground"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
@@ -466,7 +509,7 @@ function AdminPanel({
   persist: (s: SaveData) => void;
   back: () => void;
 }) {
-  const [note, setNote] = useState("Admin access granted. Welcome, boss.");
+  const [note, setNote] = useState("Tester access granted. Welcome, boss.");
   const MAX_LEVEL = 30;
 
   const maxedLevels = () =>
@@ -493,7 +536,7 @@ function AdminPanel({
       ownedShells: Array.from(new Set([...save.ownedShells, ADMIN_SHELL.id])),
       equippedShell: ADMIN_SHELL.id,
     });
-    setNote("Admin Shell granted and equipped. All stats boosted.");
+    setNote("OMEGA Shell granted and equipped. All stats maxed out.");
   };
 
   const giveEverything = () => {
@@ -514,7 +557,7 @@ function AdminPanel({
       username: save.username,
       admin: true,
     });
-    setNote("Progress wiped. Admin access kept.");
+    setNote("Progress wiped. Tester access kept.");
   };
 
   const equipped = getShell(save.equippedShell);
@@ -522,7 +565,7 @@ function AdminPanel({
   return (
     <div className="w-full max-w-2xl">
       <header className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-3xl font-extrabold text-gold">👑 Admin Panel</h2>
+        <h2 className="text-3xl font-extrabold text-gold">🧪 Tester Menu</h2>
         <Stat icon="🪙" label={`${save.coins.toLocaleString()}`} />
       </header>
 
@@ -559,7 +602,7 @@ function AdminPanel({
             🐢 Unlock every shell
           </Btn>
           <Btn tone="accent" onClick={grantAdminShell}>
-            👑 Grant + equip Admin Shell
+            🛸 Grant + equip OMEGA Shell
           </Btn>
         </section>
 
