@@ -402,7 +402,9 @@ export function createGame(
   const maxHp = (100 + lv("plating") * 12) * (1 + (fx.hpBonus ?? 0));
   const powerMul = 1 + lv("launcher") * 0.05;
   const speedMul = (1 + lv("spurs") * 0.04) * (1 + (fx.speedBonus ?? 0));
-  const fuelMax = 100 * (1 + lv("stamina") * 0.10) * (1 - (fx.fuelReduction ?? 0));
+  const fuelMax = 100 * (1 + lv("stamina") * 0.10);
+  // Fuel-saving shells cut how fast fuel drains, not the size of the tank.
+  const fuelUseMul = 1 - (fx.fuelReduction ?? 0);
   const drill = lv("drill") + (fx.drillBonus ? 1 : 0) + (fx.drillTier ?? 0);
   const magnetR = fx.magnet ? 2.7 * TS * (fx.magnetPower ?? 1) : 0;
   const fortune = 1 + lv("fortune") * 0.07 + (fx.coinBonus ?? 0);
@@ -717,6 +719,23 @@ export function createGame(
     // Update projectiles
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const pr = projectiles[i]!;
+      // Gentle homing: nudge the shot toward the player so it's threatening
+      // but still easy to dodge with a bit of steering.
+      if (pr.fromUfo) {
+        const hdx = p.x - pr.x;
+        const hdy = p.y - pr.y;
+        const hlen = Math.hypot(hdx, hdy) || 1;
+        const homing = 130;
+        pr.vx += (hdx / hlen) * homing * dt;
+        pr.vy += (hdy / hlen) * homing * dt;
+        // Cap speed so the homing can't accelerate the shot indefinitely.
+        const spd = Math.hypot(pr.vx, pr.vy);
+        const maxSpd = 360;
+        if (spd > maxSpd) {
+          pr.vx = (pr.vx / spd) * maxSpd;
+          pr.vy = (pr.vy / spd) * maxSpd;
+        }
+      }
       pr.x += pr.vx * dt;
       pr.y += pr.vy * dt;
       pr.vy += GRAV * 0.15 * dt;
@@ -821,7 +840,7 @@ export function createGame(
     // Fuel burns ONLY from steering, at a slower base rate.
     const steering = left || right;
     if (steering) {
-      p.fuel -= dt * 1.4 * FUEL_MUL;
+      p.fuel -= dt * 1.4 * FUEL_MUL * fuelUseMul;
     }
     p.fuel = Math.max(0, p.fuel);
 
