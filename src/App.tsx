@@ -309,9 +309,34 @@ function Menu({
   const cost = rebirthCost(save.rebirths);
   const canRebirth = save.rebirths < PLANETS.length - 1;
   const nextPlanet = canRebirth ? PLANETS[save.rebirths + 1] : null;
+
+  // Five quick clicks on the Leaderboard button reveal the hidden password
+  // screen. A single click just opens the leaderboard (after a short delay so
+  // the rapid-click streak has a chance to register).
+  const lbHits = useRef(0);
+  const lbNav = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (lbNav.current) window.clearTimeout(lbNav.current);
+    };
+  }, []);
+  const onLeaderboardClick = () => {
+    lbHits.current += 1;
+    if (lbNav.current) window.clearTimeout(lbNav.current);
+    if (lbHits.current >= 5) {
+      lbHits.current = 0;
+      onSecret();
+      return;
+    }
+    lbNav.current = window.setTimeout(() => {
+      lbHits.current = 0;
+      go("board");
+    }, 450);
+  };
+
   return (
     <div className="w-full max-w-md">
-      <Title onSecret={onSecret} />
+      <Title />
       <div className="mb-4 flex flex-wrap justify-center gap-2">
         <Stat icon="🪙" label={`${save.coins.toLocaleString()}`} />
         <Stat icon="⬇" label={`${save.bestDepth} m best`} />
@@ -337,7 +362,7 @@ function Menu({
         <Btn tone="accent" onClick={() => go("shop")}>
           🛠 Upgrades
         </Btn>
-        <Btn tone="secondary" onClick={() => go("board")}>
+        <Btn tone="secondary" onClick={onLeaderboardClick}>
           🏆 Leaderboard
         </Btn>
         {canRebirth && (
